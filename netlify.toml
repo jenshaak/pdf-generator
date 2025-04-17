@@ -6,6 +6,8 @@
       # Explicitly include chromium-min as an external module to ensure
       # its binary files are packaged correctly for the function environment.
       external_node_modules = ["@sparticuz/chromium-min"]
+      # Add this line to explicitly include the package's binary files
+      included_files = ["node_modules/@sparticuz/chromium-min/bin/**"]
 
     # Optional but recommended: Specify build command and publish directory
     [build]
