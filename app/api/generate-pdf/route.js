@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import puppeteer from 'puppeteer-core';
 import chromium from '@sparticuz/chromium';
+import { marked } from 'marked';
 
 // No need for getExecutablePath function - chromium package handles it
 
@@ -8,12 +9,29 @@ export async function POST(request) {
   let browser = null;
   console.log('Received request for /api/generate-pdf');
   try {
-    const { html } = await request.json();
-    console.log('Parsed HTML content length:', html?.length);
+    const body = await request.json();
+    let htmlContent = body.html;
+    const markdownContent = body.markdown;
 
-    if (!html) {
-      console.log('HTML content missing from request body.');
-      return NextResponse.json({ error: 'HTML content is required' }, { status: 400 });
+    console.log('Parsed request body keys:', Object.keys(body));
+
+    if (!htmlContent && !markdownContent) {
+      console.log('HTML or Markdown content missing from request body.');
+      return NextResponse.json({ error: 'Either \'html\' or \'markdown\' content is required' }, { status: 400 });
+    }
+
+    if (htmlContent && markdownContent) {
+      console.log('Both HTML and Markdown content provided. Please send only one.');
+      return NextResponse.json({ error: 'Provide either \'html\' or \'markdown\', not both' }, { status: 400 });
+    }
+
+    if (markdownContent) {
+      console.log('Processing Markdown content...');
+      htmlContent = await marked.parse(markdownContent);
+      console.log('Markdown converted to HTML length:', htmlContent?.length);
+    } else {
+      console.log('Processing HTML content...');
+      console.log('HTML content length:', htmlContent?.length);
     }
 
     console.log('Launching Puppeteer via @sparticuz/chromium...');
@@ -29,9 +47,8 @@ export async function POST(request) {
     const page = await browser.newPage();
     console.log('New page created.');
 
-    // Set content and wait for network activity to settle
     console.log('Setting page content...');
-    await page.setContent(html, { waitUntil: 'networkidle0' });
+    await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
     console.log('Page content set.');
 
     console.log('Generating PDF buffer...');
