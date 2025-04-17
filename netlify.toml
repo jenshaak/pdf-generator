@@ -1,0 +1,13 @@
+    # netlify.toml
+
+    [functions]
+      # Use the 'esbuild' bundler for potentially better compatibility
+      node_bundler = "esbuild"
+      # Explicitly include chromium-min as an external module to ensure
+      # its binary files are packaged correctly for the function environment.
+      external_node_modules = ["@sparticuz/chromium-min"]
+
+    # Optional but recommended: Specify build command and publish directory
+    [build]
+      command = "npm run build"
+      publish = ".next"
