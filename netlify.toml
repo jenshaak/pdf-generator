@@ -1,6 +1,6 @@
     # netlify.toml
 
-    - [functions]
+    [functions]
     -  # Keep the bundler setting that worked for the test route (or default if unsure)
     -  node_bundler = "esbuild" # Or "zisi" if that worked for /api/test
     -  external_node_modules = ["@sparticuz/chromium-min"]
