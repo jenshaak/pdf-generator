@@ -21,6 +21,7 @@ export async function POST(request) {
   }
 }
 
+
 // Optional: Add a simple GET handler for basic browser testing
 export async function GET(request) {
   return NextResponse.json({
