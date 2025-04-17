@@ -2,18 +2,21 @@ import { NextResponse } from 'next/server';
 import puppeteer from 'puppeteer-core';
 import chromium from '@sparticuz/chromium';
 import { marked } from 'marked';
+import htmlToDocx from 'html-to-docx';
 
 // No need for getExecutablePath function - chromium package handles it
 
 export async function POST(request) {
   let browser = null;
-  console.log('Received request for /api/generate-pdf');
+  console.log('Received request for /api/generate-pdf (now supports DOCX)');
   try {
     const body = await request.json();
     let htmlContent = body.html;
     const markdownContent = body.markdown;
+    const outputFormat = body.outputFormat === 'docx' ? 'docx' : 'pdf';
 
     console.log('Parsed request body keys:', Object.keys(body));
+    console.log('Requested output format:', outputFormat);
 
     if (!htmlContent && !markdownContent) {
       console.log('HTML or Markdown content missing from request body.');
@@ -34,47 +37,63 @@ export async function POST(request) {
       console.log('HTML content length:', htmlContent?.length);
     }
 
-    console.log('Launching Puppeteer via @sparticuz/chromium...');
-    browser = await puppeteer.launch({
-      args: chromium.args,
-      defaultViewport: chromium.defaultViewport,
-      executablePath: await chromium.executablePath(), // Get path directly
-      headless: chromium.headless, // Use headless mode from package
-      ignoreHTTPSErrors: true,
-    });
-    console.log('Puppeteer launched successfully.');
+    let fileBuffer;
+    let headers = {};
+    const filename = `generated.${outputFormat}`;
 
-    const page = await browser.newPage();
-    console.log('New page created.');
+    if (outputFormat === 'docx') {
+      console.log('Generating DOCX buffer...');
+      fileBuffer = await htmlToDocx(htmlContent);
+      console.log('DOCX buffer generated, size:', fileBuffer.length);
+      headers = {
+        'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'Content-Disposition': `attachment; filename="${filename}"`,
+      };
+    } else {
+      console.log('Generating PDF buffer...');
+      console.log('Launching Puppeteer via @sparticuz/chromium...');
+      browser = await puppeteer.launch({
+        args: chromium.args,
+        defaultViewport: chromium.defaultViewport,
+        executablePath: await chromium.executablePath(),
+        headless: chromium.headless,
+        ignoreHTTPSErrors: true,
+      });
+      console.log('Puppeteer launched successfully.');
 
-    console.log('Setting page content...');
-    await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
-    console.log('Page content set.');
+      const page = await browser.newPage();
+      console.log('New page created.');
 
-    console.log('Generating PDF buffer...');
-    const pdfBuffer = await page.pdf({
-      format: 'A4',
-      printBackground: true,
-      margin: { top: '20px', right: '20px', bottom: '20px', left: '20px' },
-    });
-    console.log('PDF buffer generated, size:', pdfBuffer.length);
+      console.log('Setting page content...');
+      await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
+      console.log('Page content set.');
 
-    console.log('Closing browser...');
-    await browser.close();
-    browser = null;
-    console.log('Browser closed.');
+      fileBuffer = await page.pdf({
+        format: 'A4',
+        printBackground: true,
+        margin: { top: '20px', right: '20px', bottom: '20px', left: '20px' },
+      });
+      console.log('PDF buffer generated, size:', fileBuffer.length);
 
-    console.log('Returning PDF response.');
-    return new NextResponse(pdfBuffer, {
-      status: 200,
-      headers: {
+      console.log('Closing browser...');
+      await browser.close();
+      browser = null;
+      console.log('Browser closed.');
+
+      headers = {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': 'inline; filename="generated.pdf"',
-      },
+        'Content-Disposition': `inline; filename="${filename}"`,
+      };
+    }
+
+    console.log(`Returning ${outputFormat.toUpperCase()} response.`);
+    return new NextResponse(fileBuffer, {
+      status: 200,
+      headers: headers,
     });
 
   } catch (error) {
-    console.error('*** PDF Generation Failed ***');
+    console.error(`*** ${outputFormat?.toUpperCase() ?? 'File'} Generation Failed ***`);
     console.error('Error Name:', error.name);
     console.error('Error Message:', error.message);
     console.error('Error Stack:', error.stack);
@@ -86,7 +105,7 @@ export async function POST(request) {
     }
 
     return NextResponse.json({
-      error: 'Failed to generate PDF',
+      error: `Failed to generate ${outputFormat?.toUpperCase() ?? 'file'}`,
       details: {
         name: error.name,
         message: error.message,
