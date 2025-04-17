@@ -1,13 +1,5 @@
-    # netlify.toml
+# netlify.toml
 
-    [functions]
-    -  # Keep the bundler setting that worked for the test route (or default if unsure)
-    -  node_bundler = "esbuild" # Or "zisi" if that worked for /api/test
-    -  external_node_modules = ["@sparticuz/chromium-min"]
-    -  # Add this line to explicitly include the package's binary files
-    -  included_files = ["node_modules/@sparticuz/chromium-min/bin/**"]
-
-
-    [build]
-      command = "npm run build"
-      publish = ".next"
+[build]
+  command = "npm run build"
+  publish = ".next"
