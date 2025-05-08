@@ -8,12 +8,14 @@ import htmlToDocx from 'html-to-docx';
 
 export async function POST(request) {
   let browser = null;
+  let outputFormat = 'file'; // Default value outside try/catch
+  
   console.log('Received request for /api/generate-pdf (now supports DOCX)');
   try {
     const body = await request.json();
     let htmlContent = body.html;
     const markdownContent = body.markdown;
-    const outputFormat = body.outputFormat === 'docx' ? 'docx' : 'pdf';
+    outputFormat = body.outputFormat === 'docx' ? 'docx' : 'pdf'; // Now just reassigns
 
     console.log('Parsed request body keys:', Object.keys(body));
     console.log('Requested output format:', outputFormat);
@@ -71,7 +73,7 @@ export async function POST(request) {
       fileBuffer = await page.pdf({
         format: 'A4',
         printBackground: true,
-        margin: { top: '35px', right: '35px', bottom: '35px', left: '35px' },
+        margin: { top: '55px', right: '55px', bottom: '55px', left: '55px' },
       });
       console.log('PDF buffer generated, size:', fileBuffer.length);
 
