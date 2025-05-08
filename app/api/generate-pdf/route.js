@@ -73,7 +73,7 @@ export async function POST(request) {
       fileBuffer = await page.pdf({
         format: 'A4',
         printBackground: true,
-        margin: { top: '55px', right: '55px', bottom: '55px', left: '55px' },
+        margin: { top: '68px', right: '68px', bottom: '68px', left: '68px' },
       });
       console.log('PDF buffer generated, size:', fileBuffer.length);
 
